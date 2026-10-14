@@ -1,43 +1,34 @@
-# Sistema de Gestión de Parqueadero (C++ & Python)
+# Sistema de Parqueadero con Generación Automática, Sockets C++ y Librería Dinámica en Python
 
-Proyecto desarrollado para el curso de Estructura de Datos. Implementa un núcleo en C++ con manejo dinámico de memoria, exportado como librería dinámica (`.dll`/`.so`) para su ejecución e interfaz en Python, e integrando un servidor de sockets TCP/IP para administración remota entre equipos independientes.
+Entrega del curso **Estructura de Datos**[cite: 1, 3]. Proyecto cliente-servidor desarrollado en **C++** y **Python** utilizando memoria dinámica, comunicación por sockets TCP/IP, enlaces dinámicos (`.dll`/`.so`) e interfaz gráfica de usuario (GUI)[cite: 1, 3].
 
 ## Descripción del Proyecto
-El sistema gestiona en tiempo real la ocupación, tarifas y facturación de un parqueadero comercial con capacidades diferenciadas para automóviles y motocicletas. 
+El sistema modela y monitorea en tiempo real el flujo de entrada y salida de vehículos en un parqueadero mediante dos componentes desacoplados:
 
-La arquitectura desacopla la capa de presentación de la capa lógica:
-1. **Núcleo de C++:** Controla el estado de las celdas, el cálculo matemático del tiempo y costos de facturación, y ejecuta en segundo plano un hilo de red con sockets.
-2. **Capa Externa / Sockets:** Permite que un cliente conectado desde otra computadora a través de la red local (LAN) consulte la disponibilidad o solicite el ingreso y salida de vehículos.
-3. **Interfaz de Control (Python):** Se comunica directamente con el núcleo de bajo nivel mediante vinculación dinámica en memoria (`ctypes`), consumiendo las funciones nativas exportadas por C++.
+1. **Módulo Generador y Transmisor (Proceso Cliente C++):** 
+   Genera placas vehiculares de forma automática cada 2 a 5 segundos. En cada emisión, asigna la marca de tiempo actual (`HH:MM:SS`) y la celda proyectada, transmitiendo la trama a través de un socket de red TCP/IP hacia el servidor[cite: 1].
+2. **Módulo Receptor y Librería Dinámica (Proceso Servidor C++ / DLL):** 
+   Escucha las conexiones entrantes por socket en segundo plano y administra un arreglo en memoria dinámica de celdas (`Celda*`)[cite: 1, 3]. 
+   - **Regla de Ocupación y Liberación:** Si ingresa una placa nueva, ocupa la celda asignada registrando la hora de entrada[cite: 1]. Si el sistema detecta que una placa enviada ya se encuentra registrada en el parqueadero (placa repetida), procede automáticamente a liberar dicha celda de parqueo[cite: 1].
+3. **Módulo Visualizador Gráfico (Python GUI + `ctypes`):** 
+   Carga la librería dinámica compilada de C++ y despliega una interfaz gráfica en tiempo real donde se visualizan las celdas disponibles (verde) y ocupadas (rojo) junto con la placa, hora de ingreso y registro de actividad del socket[cite: 1].
 
-## Diagrama de Clases UML
-<img width="867" height="940" alt="Imágen Diagrama UML" src="https://github.com/user-attachments/assets/7c31cc5f-3099-485c-b1fa-1f366be2551a" />
+## Arquitectura del Sistema y Diagrama UML
+<img width="867" height="940" alt="Imágen Diagrama UML" src="https://github.com/user-attachments/assets/718498e6-d725-4335-9c66-dd608d1f30f4" />
 
 
+## Cumplimiento de Criterios y Funcionalidades
+- **Memoria Dinámica y Punteros:** Administración del arreglo `Celda* celdas` y asociación `RegistroVehiculo*` en el heap con constructores y destructores explícitos (`new` / `delete[]`)[cite: 2, 3].
+- **Modularidad Estricta:** Organización bajo el principio de una clase por archivo (`.h` en `include/` y `.cpp` en `src/`)[cite: 1, 3].
+- **Comunicación Interprocesos (IPC):** Transmisión cliente-servidor 100% en C++ mediante Sockets TCP/IP[cite: 1].
+- **Interfaz Gráfica (GUI):** Tablero visual interactivo en Python (`Tkinter`) acoplado a la librería dinámica mediante `ctypes`[cite: 1].
 
-## Funcionalidades Principales
-- **Memoria Dinámica en Heap:** Creación y dimensionamiento en tiempo de ejecución de las celdas de parqueo (Celda*) y administración de vehículos por punteros (Vehiculo*).
-- **Control de Tiempo y Facturación:** Captura de marcas de tiempo precisas con la librería `<ctime>` (`time_t`), cálculo de fracciones/horas completas transcurridas y aplicación de tarifas diferenciadas por tipo de vehículo.
-- **Librería Compartida / Dinámica:** Exportación de interfaces con compatibilidad de enlace en C (`extern "C"`), permitiendo llamadas nativas desde scripts de Python.
-- **Servicio Concurrente por Sockets:** Socket servidor TCP/IP multihilo (std::thread) ejecutándose sobre puertos de red dedicados para recibir comandos desde PCs externas sin congelar la aplicación principal.
+## Distribución de Actividades, Ramas y Commits
+- **[Carlos10marin] (Rama `feature/modelo-parqueadero`):** Clases `RegistroVehiculo`, `Celda` y `Parqueadero` con gestión de memoria dinámica y lógica de liberación por placa repetida[cite: 1, 3].
+- **[Carlos10marin] (Rama `feature/generador`):** Clase `GeneradorPlacas` con temporizador aleatorio de 2 a 5 segundos y captura de hora del sistema[cite: 1, 3].
+- **[Teojz] (Rama `feature/sockets-red`):** Clases `ClienteSocket` y `ServidorSocket` en C++ para transmisión y recepción de tramas TCP/IP[cite: 1, 3].
+- **[Teojz] (Rama `feature/visualizador-dll`):** Puente de librería dinámica (`wrapper_dll.cpp`), ejecutable cliente (`main_generador.cpp`), interfaz gráfica en Python (`visualizador_gui.py`) y documentación del repositorio[cite: 1, 3].
 
-## Distribución de Actividades y Commits
-- **[Teojz]:** Implementación de la arquitectura del servidor de sockets de red (ServidorRed), administración de conexiones TCP/IP concurrentes e integración del wrapper de enlace dinámico (extern "C").
-- **[Carlos10marin]:** Implementación de clases de entidad (Vehiculo, Celda), gestión de memoria dinámica (Celda* celdasCarro, Celda* celdasMoto) y control de ocupación/disponibilidad.
-- **[Carlos10marin]:** Lógica de facturación y medición de tiempo en `Parqueadero` (time_t), cálculo de cobro por tarifas y liberación de celdas.
-- **[Teojz]:** Script de carga e interfaz en Python (`ctypes`), pruebas de integración cliente-servidor externa y documentación del repositorio.
-
-## Protocolo de Comunicación por Socket (Trama de Red)
-El servidor socket expone un protocolo de texto plano delimitado por comas (`CSV`) para procesar operaciones remotas enviadas por clientes externos:
-
-### 1. Registro de Entrada
-- **Petición:** `ENTRADA;<PLACA>;<TIPO>` (Ejemplo: `ENTRADA;ABC123;Carro`)
-- **Respuesta Servidor:** `OK;CELDA_ASIGNADA:<ID>` o `ERROR;PARQUEADERO_LLENO`
-
-### 2. Registro de Salida y Cobro
-- **Petición:** `SALIDA;<PLACA>` (Ejemplo: `SALIDA;ABC123`)
-- **Respuesta Servidor:** `OK;TIEMPO_HORAS:<H>;TOTAL_PAGAR:<VALOR>` o `ERROR;VEHICULO_NO_ENCONTRADO`
-
-### 3. Consulta de Disponibilidad
-- **Petición:** `ESTADO`
-- **Respuesta Servidor:** `AUTOS_DISP:<N>/<TOTAL>;MOTOS_DISP:<M>/<TOTAL>`
+## Formato de Trama de Red (Socket C++)
+- **Trama enviada cada 2-5 seg:** `PLACA;CELDA;HORA` (Ejemplo: `KLM-452;3;14:35:10`)[cite: 1]
+- **Estado exportado a Python:** `ID_CELDA,ESTADO(0/1),PLACA,HORA|...`
