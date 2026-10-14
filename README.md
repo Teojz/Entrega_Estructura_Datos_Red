@@ -11,7 +11,8 @@ La arquitectura desacopla la capa de presentación de la capa lógica:
 3. **Interfaz de Control (Python):** Se comunica directamente con el núcleo de bajo nivel mediante vinculación dinámica en memoria (`ctypes`), consumiendo las funciones nativas exportadas por C++.
 
 ## Diagrama de Clases UML
-<img width="455" height="974" alt="RLJ1ZjiW4Br7oZzmpBhEjkSUgbrbLseFgqPDrMir0PACYXaMS0wjsd_fj_J7Yi766CKNcs5uR-RDCm_EW_LzfzOhzmEr0GiTumgSU_JUuh7tyXCdVS2VahrRhzQhkCU-oGloNX7xjLwny6oP2zdwp8m23bNCew4fvB6Jtpsxa8LdxIs8ANcRtcyoz2OZjXdeRaeQ0sVfzmFXviR6ry0wnq" src="https://github.com/user-attachments/assets/3511545f-7dcc-4a4f-906b-038c06b2b058" />
+<img width="867" height="940" alt="Imágen Diagrama UML" src="https://github.com/user-attachments/assets/7c31cc5f-3099-485c-b1fa-1f366be2551a" />
+
 
 
 ## Funcionalidades Principales
