@@ -1,0 +1,12 @@
+*.exe
+*.o
+*.obj
+*.out
+*.dll
+*.so
+__pycache__/
+build/
+Debug/
+Release/
+.vscode/
+.idea/
