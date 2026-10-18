@@ -30,5 +30,11 @@ El sistema modela y monitorea en tiempo real el flujo de entrada y salida de veh
 - **[Teojz] (Rama `feature/visualizador-dll`):** Puente de librería dinámica (`wrapper_dll.cpp`), ejecutable cliente (`main_generador.cpp`), interfaz gráfica en Python (`visualizador_gui.py`) y documentación del repositorio[cite: 1, 3].
 
 ## Formato de Trama de Red (Socket C++)
-- **Trama enviada cada 2-5 seg:** `PLACA;CELDA;HORA` (Ejemplo: `KLM-452;3;14:35:10`)[cite: 1]
-- **Estado exportado a Python:** `ID_CELDA,ESTADO(0/1),PLACA,HORA|...`
+- **Trama enviada cada 2-5 seg (Debe ser una estructura) :** 
+Ejemplo:
+struct TramaVehiculo {
+    char placa[7];       
+    int celda;      
+    char hora[8];        
+};
+- **Estado exportado a Python:** ID_CELDA,ESTADO(0/1),PLACA,HORA|...
