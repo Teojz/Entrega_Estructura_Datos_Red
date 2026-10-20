@@ -1,6 +1,5 @@
 #include "../include/Parqueadero.h"
 #include <sstream>
-#include <iostream>
 
 Parqueadero::Parqueadero(int cap) : capacidadTotal(cap), celdas(nullptr) {
     if (capacidadTotal < 1) {
@@ -21,7 +20,7 @@ Parqueadero::~Parqueadero() {
     }
 }
 
-int Parqueadero::buscarPlaca(std::string placa) {
+int Parqueadero::buscarPlacaSinBloqueo(const std::string& placa) const {
     if (celdas == nullptr || placa.empty()) {
         return -1;
     }
@@ -36,32 +35,46 @@ int Parqueadero::buscarPlaca(std::string placa) {
     return -1; // No encontrada
 }
 
+int Parqueadero::buscarPlaca(std::string placa) {
+    // Versión pública: toma el mutex (antes quedaba sin proteger frente a otros hilos)
+    std::lock_guard<std::mutex> lock(mutexAcceso);
+    return buscarPlacaSinBloqueo(placa);
+}
+
 std::string Parqueadero::procesarEventoPlaca(std::string placa, int celdaSugerida, std::string hora) {
     std::lock_guard<std::mutex> lock(mutexAcceso);
 
     if (celdas == nullptr) {
         return "[ERROR] Sistema de celdas no inicializado.";
     }
+    if (placa.empty()) {
+        std::string r = "[ERROR] Placa vacia rechazada a las " + hora + ".";
+        registrarEvento(r);
+        return r;
+    }
 
     // Regla de Negocio: Verificar si la placa ya se encuentra dentro del parqueadero
-    int posExistente = buscarPlaca(placa);
+    int posExistente = buscarPlacaSinBloqueo(placa);
 
     if (posExistente != -1) {
         // La placa ya existe: Evento de SALIDA / LIBERACIÓN automática
         int numCelda = celdas[posExistente].getNumeroCelda();
         celdas[posExistente].liberar();
-        std::string resultado = "[SALIDA] Vehiculo [" + placa + "] salio de la celda #" + 
+        std::string resultado = "[SALIDA] Vehiculo [" + placa + "] salio de la celda #" +
                                 std::to_string(numCelda) + " a las " + hora + ". Celda liberada.";
+        registrarEvento(resultado);
         return resultado;
     }
 
     // La placa no existe: Evento de ENTRADA / ASIGNACIÓN
     int indiceAsignado = -1;
+    bool usoSugerida = false;
 
     // Verificar si la celda sugerida es válida y está libre (1-based index)
     int idxSugerido = celdaSugerida - 1;
     if (idxSugerido >= 0 && idxSugerido < capacidadTotal && !celdas[idxSugerido].estaOcupada()) {
         indiceAsignado = idxSugerido;
+        usoSugerida = true;
     } else {
         // Si la celda sugerida está ocupada o fuera de rango, buscar la primera celda libre disponible
         for (int i = 0; i < capacidadTotal; ++i) {
@@ -74,13 +87,19 @@ std::string Parqueadero::procesarEventoPlaca(std::string placa, int celdaSugerid
 
     if (indiceAsignado == -1) {
         // No hay celdas libres disponibles
-        return "[LLENO] Parqueadero al 100%. Vehiculo [" + placa + "] no pudo ingresar a las " + hora + ".";
+        std::string r = "[LLENO] Parqueadero al 100%. Vehiculo [" + placa + "] no pudo ingresar a las " + hora + ".";
+        registrarEvento(r);
+        return r;
     }
 
     // Ocupar la celda seleccionada
     celdas[indiceAsignado].ocupar(placa, hora);
-    std::string resultado = "[ENTRADA] Vehiculo [" + placa + "] parqueado en celda #" + 
+    std::string resultado = "[ENTRADA] Vehiculo [" + placa + "] parqueado en celda #" +
                             std::to_string(celdas[indiceAsignado].getNumeroCelda()) + " a las " + hora + ".";
+    if (!usoSugerida) {
+        resultado += " (celda sugerida #" + std::to_string(celdaSugerida) + " no disponible, reasignada)";
+    }
+    registrarEvento(resultado);
     return resultado;
 }
 
@@ -134,4 +153,25 @@ int Parqueadero::getCeldasOcupadas() const {
 
 int Parqueadero::getCeldasDisponibles() const {
     return getCapacidadTotal() - getCeldasOcupadas();
+}
+
+void Parqueadero::registrarEvento(const std::string& mensaje) {
+    std::lock_guard<std::mutex> lock(mutexBitacora);
+    bitacora.push_back(mensaje);
+    while (bitacora.size() > MAX_BITACORA) {
+        bitacora.pop_front();
+    }
+}
+
+std::string Parqueadero::obtenerBitacora(int maxLineas) const {
+    std::lock_guard<std::mutex> lock(mutexBitacora);
+    std::size_t total = bitacora.size();
+    std::size_t limite = (maxLineas > 0) ? static_cast<std::size_t>(maxLineas) : total;
+    std::size_t inicio = (total > limite) ? total - limite : 0;
+    std::ostringstream ss;
+    for (std::size_t i = inicio; i < total; ++i) {
+        ss << bitacora[i];
+        if (i + 1 < total) ss << "\n";
+    }
+    return ss.str();
 }

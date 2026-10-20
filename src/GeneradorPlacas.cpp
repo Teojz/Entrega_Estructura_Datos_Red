@@ -3,6 +3,7 @@
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#include <mutex>
 
 GeneradorPlacas::GeneradorPlacas(int maxC) : maxCeldas(maxC > 0 ? maxC : 10) {
     // Inicializar pool de 15 placas predefinidas
@@ -40,13 +41,15 @@ int GeneradorPlacas::elegirCelda() {
 std::string GeneradorPlacas::obtenerHoraActual() {
     auto ahora = std::chrono::system_clock::now();
     std::time_t tiempo = std::chrono::system_clock::to_time_t(ahora);
-    std::tm tmBuffer;
 
-#if defined(_WIN32) || defined(_WIN64)
-    localtime_s(&tmBuffer, &tiempo);
-#else
-    localtime_r(&tiempo, &tmBuffer);
-#endif
+    // localtime_s / localtime_r tienen firmas distintas segun compilador (MinGW antiguo no trae localtime_s).
+    // std::localtime es estandar en todos; se protege con mutex porque usa un buffer interno compartido.
+    static std::mutex mutexTiempo;
+    std::tm tmBuffer;
+    {
+        std::lock_guard<std::mutex> lock(mutexTiempo);
+        tmBuffer = *std::localtime(&tiempo);
+    }
 
     std::ostringstream ss;
     ss << std::setfill('0')
